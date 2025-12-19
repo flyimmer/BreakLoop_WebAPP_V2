@@ -5364,10 +5364,10 @@ function BreakLoopConfig({
                 ))}
               </div>
 
-              {/* Fail Rate by Trigger */}
+              {/* Continued Use by Trigger */}
               <div className="space-y-3 mt-6">
                 <h4 className="text-xs font-bold text-white/50 uppercase tracking-wider mb-2">
-                  Fail Rate by Trigger
+                  Continued Use by Trigger
                 </h4>
                 {ADVANCED_STATS.causeFail.map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
@@ -5381,7 +5381,7 @@ function BreakLoopConfig({
                     <div className="flex-1">
                       <div className="flex justify-between text-xs font-bold mb-1">
                         <span>{item.label}</span>
-                        <span>{item.rate}% Fail</span>
+                        <span>{item.rate}%</span>
                       </div>
                       <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                         <div
