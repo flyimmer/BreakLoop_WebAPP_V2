@@ -1,0 +1,10 @@
+{
+  "short_name": "BreakLoop",
+  "name": "BreakLoop",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "icons": []
+}
+

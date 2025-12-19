@@ -1,0 +1,93 @@
+.App {
+  font-family: sans-serif;
+  text-align: center;
+}
+
+/* Animated, calming gradient background for intervention screens */
+.gradient-animated {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #0b1a3a 0%, #0b1a3a 25%, #0f9f9f 60%, #6a4bd5 100%);
+  background-size: 300% 300%;
+  animation: gradientShift 30s ease infinite;
+  z-index: 0;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Subtle vignette around the edges for depth */ 
+.gradient-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at center, rgba(0,0,0,0) 40%, rgba(0,0,0,0.55) 100%);
+  z-index: 0;
+}
+
+/* Very light noise/texture overlay for depth (CSS-only) */
+.noise-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Subtle dotted texture pattern */
+  background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 2px 2px;
+  mix-blend-mode: overlay;
+  opacity: 0.04;
+  z-index: 0;
+}
+
+/* Hide scrollbar for horizontal scrolling containers */
+.scrollbar-hide {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none !important;  /* Chrome, Safari and Opera */
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Thin horizontal scrollbar (desktop) and hidden on mobile */
+.horizontal-scroll {
+  scrollbar-width: thin;
+}
+
+@media (max-width: 768px) {
+  .horizontal-scroll {
+    scrollbar-width: none;
+  }
+  .horizontal-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.horizontal-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.horizontal-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.horizontal-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.6);
+  border-radius: 9999px;
+}
+
+/* Global scrollbar hiding for all overflow containers */
+* {
+  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera */
+  width: 0;
+  height: 0;
+}

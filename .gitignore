@@ -1,0 +1,9 @@
+# Ignore the environment file (secrets)
+.env
+
+# Ignore build output folders
+build/
+dist/
+
+# Ignore dependency folders (too huge)
+node_modules/
