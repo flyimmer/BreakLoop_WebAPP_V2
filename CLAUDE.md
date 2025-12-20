@@ -164,11 +164,15 @@ Three modes accessible via Community tab:
 
 ## AI Integration
 
+**📖 For detailed AI documentation, see [`design/AI_INTEGRATION.md`](design/AI_INTEGRATION.md)**
+
 **Gemini API** (optional):
 - Set `REACT_APP_GEMINI_KEY` environment variable
+- **Model:** `gemini-2.0-flash-exp` with Google Search Grounding
+- **Temperature:** 0.1 (maximum factuality, prevents hallucination)
 - Used for:
-  - Activity planning suggestions (`PlanActivityModal`)
-  - Alternative idea generation (AI For You tab)
+  - Activity planning suggestions (`PlanActivityModal`) - Real-time event search
+  - Alternative idea generation (AI For You tab) - Contextual suggestions
   - Deep insights analysis (Insights screen)
 - Implementation in `src/utils/gemini.js`
 - Gracefully degrades if API key is missing

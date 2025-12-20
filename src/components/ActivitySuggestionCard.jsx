@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Edit2, MapPin, Save, Sparkles, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { Edit2, MapPin, Save, Sparkles, Clock, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 
 // Helper function to create a short summary from description
 function getDescriptionSummary(description) {
@@ -90,6 +90,18 @@ export default function ActivitySuggestionCard({
           </span>
         ) : null}
       </div>
+
+      {/* Event link - always available now with smart URLs */}
+      {suggestion.eventUrl && (
+        <a
+          href={suggestion.eventUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+        >
+          <ExternalLink size={12} /> Find details & book tickets
+        </a>
+      )}
 
       <div className="grid grid-cols-2 gap-2 pt-2">
         <button

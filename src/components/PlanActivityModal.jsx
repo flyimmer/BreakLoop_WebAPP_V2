@@ -18,41 +18,84 @@ import { parseFormattedDate, parseTimeString, parseTimeRange } from "../utils/ti
 export async function generateActivitySuggestions(inputs) {
   const { topic, location, timePreference, date, participantsDescription } = inputs;
 
-  // Build the prompt for Gemini
+  // Build the optimized prompt for Gemini
   const timeContext = timePreference === "Now" 
     ? `right now (current time: ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })})` 
     : (timePreference || "any time");
-  
-  const prompt = `You are a mindful activity planning assistant. Generate 3 diverse, personalized activity suggestions based on the following user preferences:
 
-Topic/Interest: ${topic || "general wellness"}
-Location: ${location || "flexible location"}
-Time of Day: ${timeContext}
-Date: ${date || "today"}
-Participants Description: ${participantsDescription || "no specific participant preferences"}
+  // Helper to get the day name (e.g., "Sunday" / "Sonntag")
+  const dateObj = new Date(date || new Date());
+  const dayName = dateObj.toLocaleDateString('de-DE', { weekday: 'long' }); // e.g., "Sonntag"
 
-Please generate 3 different activity suggestions that:
-1. Match the topic/interest if provided
-2. Can be done at or near the specified location
-3. Are appropriate for the time of day
-4. Consider the number of participants and participant preferences if provided
-5. Range from 20 minutes to 3 hours in duration
-6. Provide clear, actionable descriptions with SPECIFIC recommendations
+  const systemInstruction = `You are a Smart Local Event Scout.
 
-IMPORTANT: Be specific and concrete in your suggestions. If the user mentions watching a movie, recommend actual movie titles. If they mention restaurants, suggest real places. If they mention activities, provide specific venues or exact plans. Include the location details in your suggestions.
+PRIMARY REQUIREMENT - TOPIC MATCH:
+The user wants: "${topic || "general wellness"}"
+YOU MUST search ONLY for events matching this topic. Do NOT suggest unrelated activities.
+- If topic is "Dinner" or "Restaurant" → Search ONLY for restaurants/dining
+- If topic is "Movie" → Search ONLY for cinemas/films
+- If topic is "Concert" → Search ONLY for live music
+- ALL 3 suggestions MUST match the topic. NO exceptions.
 
-Return your response as a valid JSON array with exactly 3 objects, each having this structure:
+INPUT CONTEXT:
+• User Topic: "${topic || "general wellness"}" (MOST IMPORTANT - match this!)
+• User Location: "${location || "flexible location"}" (This is the USER'S starting point, NOT the venue address).
+• Date: "${dayName}" (${date || "today"}).
+
+SEARCH STRATEGY (CRITICAL):
+1. ANALYZE LOCATION: If "${location || "flexible location"}" is a specific street (like "Gertrud-Grunow-Str"), search for "Cinema program in [City of this street]" or "Events near ${location || "flexible location"}". DO NOT limit search to just that street.
+2. FIND VENUE ADDRESS: You MUST find the real address of the cinema/venue (e.g., "Cinema Filmtheater, Nymphenburger Str. 31").
+3. NO MIRRORING: NEVER simply copy "${location || "flexible location"}" into the output 'location' field. If you can't find the real venue address, use the Venue Name + City.
+
+LOCATION INTELLIGENCE:
+- User's location is a REFERENCE POINT, not the venue location
+- Search in the city/area of the user's location
+- City location: Search entire city (20km radius)
+- Street address: Search in that city/neighborhood (10km radius)
+- Find REAL venue addresses, not the user's address
+
+CRITICAL INSTRUCTION FOR TABLES:
+Search results often show weekly schedules (Mon, Tue, Wed...).
+You MUST explicitly look for the column or section matching "${dayName}" (${date || "today"}).
+DO NOT use times from adjacent columns (yesterday or tomorrow).
+
+RULES:
+1. TOPIC PRIORITY: ALL suggestions MUST match "${topic || "general wellness"}". This is NON-NEGOTIABLE.
+2. DIVERSITY: Try to find 3 distinct options within the same topic category.
+3. ACCURATE TIMES: Only list confirmed start times for ${dayName}.
+4. NO DUPLICATES: Do not list the same event twice.
+5. REAL TIME CHECK: Be careful with "19:30" vs "19:00". Verify the minute exactness.
+
+CRITICAL OUTPUT REQUIREMENT:
+- Return ONLY a valid JSON array
+- NO conversational text like "Okay", "Here are", "I found", etc.
+- NO explanations before or after the JSON
+- Start your response with [ and end with ]
+- If you cannot find valid events, return an empty array: []
+
+OUTPUT FORMAT (JSON Array):
 [
   {
-    "title": "Activity Name (be specific, e.g., 'Watch The Notebook at Cinema Palace')",
-    "description": "Detailed description with specific recommendations, venue names, movie titles, etc.",
-    "duration": "estimated time like 30-45m or 60-90m",
-    "time": "suggested start time in HH:MM format based on timePreference"
+    "title": "Exact Event Title",
+    "description": "Short, engaging description. Mention confirmed time.",
+    "time": "HH:MM",
+    "duration": "e.g. 120m",
+    "location": "REAL Venue Name, REAL Street Address, City",
+    "eventUrl": null
   }
-]
+]`;
 
-Make each suggestion unique and diverse. Be as specific as possible based on the user's inputs.
-IMPORTANT: Return ONLY the JSON array, no markdown formatting, no code blocks, no additional text.`;
+  const userPrompt = `CRITICAL: Find ONLY "${topic || "general wellness"}" events for:
+• PRIMARY TOPIC: "${topic || "general wellness"}" (MUST MATCH - search ONLY for this type of event)
+• Date: ${date || "today"} (${dayName})
+• Location: ${location || "flexible location"}
+• Time Preference: ${timeContext}
+
+REMINDER: Do NOT mix different activity types. If user wants "Dinner", return ONLY restaurants. If user wants "Movie", return ONLY cinemas.`;
+
+  const prompt = `${systemInstruction}
+
+${userPrompt}`;
 
   try {
     const response = await callGemini(prompt);
@@ -62,28 +105,63 @@ IMPORTANT: Return ONLY the JSON array, no markdown formatting, no code blocks, n
       return getFallbackSuggestions(inputs);
     }
 
-    // Clean the response - remove markdown code blocks if present
+    // Clean the response - aggressively remove any markdown code blocks and conversational text
     let cleanedResponse = response.trim();
-    if (cleanedResponse.startsWith("```json")) {
-      cleanedResponse = cleanedResponse.replace(/```json\n?/g, "").replace(/```\n?$/g, "");
-    } else if (cleanedResponse.startsWith("```")) {
-      cleanedResponse = cleanedResponse.replace(/```\n?/g, "").replace(/```\n?$/g, "");
+    
+    // Remove markdown code blocks (```json ... ``` or ``` ... ```)
+    cleanedResponse = cleanedResponse.replace(/^```(?:json)?\s*/g, "").replace(/\s*```$/g, "");
+    
+    // Remove any conversational text before the JSON array
+    // Find the first [ and last ] to extract only the JSON array
+    const firstBracket = cleanedResponse.indexOf('[');
+    const lastBracket = cleanedResponse.lastIndexOf(']');
+    
+    if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+      cleanedResponse = cleanedResponse.substring(firstBracket, lastBracket + 1);
     }
+    
+    // Remove any leading/trailing whitespace again after stripping
+    cleanedResponse = cleanedResponse.trim();
 
     // Parse the JSON response
     const suggestions = JSON.parse(cleanedResponse);
 
     // Validate and format the suggestions
     if (Array.isArray(suggestions) && suggestions.length > 0) {
-      return suggestions.slice(0, 3).map((sug, index) => ({
-        id: `ai-${Date.now()}-${index + 1}`,
-        title: sug.title || "Suggested Activity",
-        description: sug.description || "No description provided",
-        time: sug.time || getDefaultTime(timePreference, index),
-        location: location || "Your preferred location",
-        topic: topic || "General wellness",
-        duration: sug.duration || "30-60m",
-      }));
+      // Post-processing: Generate Fail-Safe URLs with Date
+      // We do NOT trust the AI's direct link for booking, as deep links often fail (404 errors)
+      // Instead, we construct a precise Google Search query using high-quality data from AI
+      return suggestions.slice(0, 3).map((sug, index) => {
+        const suggestionLocation = sug.location || location || "Your preferred location";
+        
+        // Fail-Safe URL Strategy:
+        // We construct a query that lands the user on the Daily Schedule page.
+        // We include the DATE to ensure the search results are for the right day.
+        // We exclude the TIME to prevent "zero results" if the formatting differs (e.g. "20:15" vs "8:15 PM").
+        // Query format: "Avatar Munich 2025-12-21 tickets showtimes"
+        const queryParts = [
+          sug.title || "Suggested Activity",
+          suggestionLocation, // Contains Venue + City
+          date || new Date().toISOString().split('T')[0], // CRITICAL: Add the specific date
+          "tickets",
+          "showtimes"
+        ];
+        
+        // Join and clean
+        const query = queryParts.filter(Boolean).join(" ");
+        const safeLink = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+        
+        return {
+          id: `ai-${Date.now()}-${index + 1}`,
+          title: sug.title || "Suggested Activity",
+          description: sug.description || "No description provided",
+          time: sug.time || getDefaultTime(timePreference, index),
+          location: suggestionLocation,
+          topic: topic || "General wellness",
+          duration: sug.duration || "30-60m",
+          eventUrl: safeLink, // ALWAYS use our 100% working Google Search link with DATE
+        };
+      });
     } else {
       console.warn("Invalid suggestions format from Gemini, using fallback");
       return getFallbackSuggestions(inputs);
@@ -92,6 +170,91 @@ IMPORTANT: Return ONLY the JSON array, no markdown formatting, no code blocks, n
     console.error("Error generating AI suggestions:", error);
     return getFallbackSuggestions(inputs);
   }
+}
+
+// Helper function to generate useful search/booking URLs based on activity details
+function generateSmartUrl(suggestion, userLocation) {
+  const title = suggestion.title || "";
+  const location = suggestion.location || userLocation || "";
+  const description = suggestion.description || "";
+  
+  // Detect activity type and generate appropriate URL
+  const titleLower = title.toLowerCase();
+  const descLower = description.toLowerCase();
+  
+  // Movie/Cinema detection
+  if (titleLower.includes('watch') || titleLower.includes('movie') || titleLower.includes('film') || 
+      titleLower.includes('cinema') || titleLower.includes('kino') ||
+      descLower.includes('cinema') || descLower.includes('screening') || descLower.includes('kino')) {
+    
+    // Extract movie title if in quotes or after "Watch"
+    let movieTitle = "";
+    const quoteMatch = title.match(/['"]([^'"]+)['"]/);
+    if (quoteMatch) {
+      movieTitle = quoteMatch[1];
+    } else {
+      const watchMatch = title.match(/watch\s+(.+?)(?:\s+at|\s+in|$)/i);
+      if (watchMatch) {
+        movieTitle = watchMatch[1];
+      }
+    }
+    
+    if (movieTitle) {
+      // Google search for movie showtimes in the specific location
+      const searchQuery = `${movieTitle} showtimes ${location}`;
+      return `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`;
+    }
+  }
+  
+  // Concert/Music detection
+  if (titleLower.includes('concert') || titleLower.includes('music') || titleLower.includes('live') ||
+      descLower.includes('concert') || descLower.includes('performance') || descLower.includes('band')) {
+    const searchQuery = `${title} ${location} tickets`;
+    return `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`;
+  }
+  
+  // Theater/Show detection
+  if (titleLower.includes('theater') || titleLower.includes('theatre') || titleLower.includes('play') ||
+      titleLower.includes('show') || descLower.includes('theater') || descLower.includes('stage')) {
+    const searchQuery = `${title} ${location} tickets`;
+    return `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`;
+  }
+  
+  // Exhibition/Museum detection
+  if (titleLower.includes('exhibition') || titleLower.includes('museum') || titleLower.includes('gallery') ||
+      titleLower.includes('ausstellung') || descLower.includes('exhibition') || descLower.includes('museum')) {
+    const searchQuery = `${title} ${location}`;
+    return `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`;
+  }
+  
+  // Workshop/Class detection
+  if (titleLower.includes('workshop') || titleLower.includes('class') || titleLower.includes('course') ||
+      titleLower.includes('lesson') || descLower.includes('workshop') || descLower.includes('learn')) {
+    // Try Eventbrite first for workshops
+    const searchQuery = `${title} ${location}`;
+    return `https://www.eventbrite.com/d/${encodeURIComponent(location)}/${encodeURIComponent(title)}/`;
+  }
+  
+  // Meetup/Social event detection
+  if (titleLower.includes('meetup') || titleLower.includes('meet') || titleLower.includes('social') ||
+      descLower.includes('meetup') || descLower.includes('gathering') || descLower.includes('group')) {
+    const searchQuery = `${title} ${location}`;
+    return `https://www.meetup.com/find/?keywords=${encodeURIComponent(searchQuery)}`;
+  }
+  
+  // Restaurant/Dining detection
+  if (titleLower.includes('restaurant') || titleLower.includes('dinner') || titleLower.includes('lunch') ||
+      titleLower.includes('cafe') || titleLower.includes('dining') || descLower.includes('restaurant')) {
+    // Extract restaurant name if possible
+    const venueMatch = title.match(/at\s+(.+?)(?:\s+in|$)/i);
+    const venueName = venueMatch ? venueMatch[1] : title;
+    const searchQuery = `${venueName} ${location}`;
+    return `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`;
+  }
+  
+  // Default: Google search for the activity
+  const searchQuery = `${title} ${location}`;
+  return `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`;
 }
 
 // Helper function to get default time based on preference
@@ -118,7 +281,7 @@ function getFallbackSuggestions(inputs) {
   const { topic, location, timePreference } = inputs;
   const locationText = location ? `at ${location}` : "";
 
-  return [
+  const suggestions = [
     {
       id: `ai-${Date.now()}-1`,
       title: "Mindful Activity Session",
@@ -147,6 +310,24 @@ function getFallbackSuggestions(inputs) {
       duration: "20-45m",
     },
   ];
+
+  // Add fail-safe URLs to fallback suggestions with date
+  return suggestions.map(sug => {
+    const queryParts = [
+      sug.title,
+      sug.location,
+      inputs.date || new Date().toISOString().split('T')[0], // Include date
+      "tickets",
+      "showtimes"
+    ];
+    const query = queryParts.filter(Boolean).join(" ");
+    const safeLink = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+    
+    return {
+      ...sug,
+      eventUrl: safeLink,
+    };
+  });
 }
 
 export default function PlanActivityModal({
@@ -621,11 +802,17 @@ export default function PlanActivityModal({
                     key={suggestion.id}
                     suggestion={suggestion}
                     onEdit={(s) => {
+                      const contextualSuggestion = withContext(s);
                       setManualForm((prev) => ({
                         ...prev,
-                        ...withContext(s),
-                        time: s.time || "",
-                        date: aiForm.date,
+                        title: contextualSuggestion.title || "",
+                        description: contextualSuggestion.description || "",
+                        time: contextualSuggestion.time || "",
+                        date: contextualSuggestion.date || aiForm.date,
+                        location: contextualSuggestion.location || "",
+                        duration: contextualSuggestion.duration || "",
+                        steps: "",
+                        endTime: "",
                       }));
                       setSoloMode("manual");
                       setCameFromSuggestions(true);
@@ -1001,8 +1188,8 @@ export default function PlanActivityModal({
           {mode === "solo" ? soloForm : groupFormView}
 
           <div className="mt-4 text-[11px] text-slate-500 flex items-center gap-1">
-            <AlertCircle size={12} className="text-amber-500" />
-            AI suggestions powered by Gemini. Set REACT_APP_GEMINI_KEY to enable.
+            <AlertCircle size={12} className="text-emerald-500" />
+            AI suggestions with real-time search powered by Gemini. Set REACT_APP_GEMINI_KEY to enable.
           </div>
         </div>
       </div>
