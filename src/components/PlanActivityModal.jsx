@@ -192,6 +192,8 @@ export default function PlanActivityModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  // Track if user came from AI suggestions (to enable back navigation)
+  const [cameFromSuggestions, setCameFromSuggestions] = useState(false);
 
   const isEditMode = !!editActivity;
   const canSubmitSoloManual = manualForm.title && manualForm.date && manualForm.time;
@@ -404,7 +406,8 @@ export default function PlanActivityModal({
     setSuggestions([]);
     setError("");
     setIsLoading(false);
-    setSoloMode("ai");
+    setCameFromSuggestions(false);
+    // Don't reset soloMode - preserve user's last selection (AI suggestion vs Manual edit)
     setManualForm({
       title: "",
       description: "",
@@ -435,8 +438,25 @@ export default function PlanActivityModal({
   };
 
   const handleClose = () => {
-    resetModal();
-    onClose?.();
+    // If user is in manual mode and came from AI suggestions, go back to suggestions
+    if (soloMode === "manual" && cameFromSuggestions && suggestions.length > 0) {
+      setSoloMode("ai");
+      setCameFromSuggestions(false);
+      // Clear manual form but keep suggestions
+      setManualForm({
+        title: "",
+        description: "",
+        date: defaultDate,
+        time: "",
+        endTime: "",
+        steps: "",
+        location: "",
+      });
+    } else {
+      // Otherwise, close the modal completely
+      resetModal();
+      onClose?.();
+    }
   };
 
   const handleBackToForm = () => {
@@ -608,7 +628,8 @@ export default function PlanActivityModal({
                         date: aiForm.date,
                       }));
                       setSoloMode("manual");
-                      setSuggestions([]);
+                      setCameFromSuggestions(true);
+                      // Keep suggestions so user can go back
                     }}
                     onSave={(s) => {
                       onSaveSuggestion?.(withContext(s));
@@ -621,6 +642,28 @@ export default function PlanActivityModal({
           </div>
         ) : (
           <div className="space-y-3">
+            {/* Show back button if user came from AI suggestions */}
+            {cameFromSuggestions && suggestions.length > 0 && (
+              <button
+                onClick={() => {
+                  setSoloMode("ai");
+                  setCameFromSuggestions(false);
+                  // Clear manual form
+                  setManualForm({
+                    title: "",
+                    description: "",
+                    date: defaultDate,
+                    time: "",
+                    endTime: "",
+                    steps: "",
+                    location: "",
+                  });
+                }}
+                className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+              >
+                ← Back to suggestions
+              </button>
+            )}
             <div className="flex flex-col gap-1">
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 Title
@@ -903,58 +946,64 @@ export default function PlanActivityModal({
   if (!isOpen) return null;
 
   return (
-    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-4">
-      <div className="bg-white w-full max-w-lg rounded-3xl p-5 md:p-6 shadow-xl relative">
-        <button
-          onClick={handleClose}
-          className="absolute right-4 top-4 text-slate-500 bg-slate-100 rounded-full p-2"
-          aria-label="Close"
-        >
-          <X size={16} />
-        </button>
-        <div className="flex items-center gap-2 mb-4">
-          <Sparkles size={18} className="text-emerald-500" />
-          <h3 className="text-lg font-bold text-slate-800">
-            {isEditMode ? "Edit activity" : "Plan an activity"}
-          </h3>
-        </div>
-
-        {!isEditMode && (
-          <div className="flex items-center gap-2 mb-3">
-            <button
-              onClick={() => {
-                setMode("solo");
-                setSuggestions([]);
-              }}
-              className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold border ${
-                mode === "solo"
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                  : "bg-white text-slate-600 border-slate-200"
-              }`}
-            >
-              <User size={14} /> Private
-            </button>
-            <button
-              onClick={() => {
-                setMode("group");
-                setSuggestions([]);
-              }}
-              className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold border ${
-                mode === "group"
-                  ? "bg-blue-50 text-blue-700 border-blue-100"
-                  : "bg-white text-slate-600 border-slate-200"
-              }`}
-            >
-              <Users size={14} /> Public
-            </button>
+    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white w-full max-w-lg rounded-3xl shadow-xl relative my-auto">
+        {/* Header with close button */}
+        <div className="p-5 md:p-6 pb-3 border-b border-slate-100">
+          <button
+            onClick={handleClose}
+            className="absolute right-4 top-4 text-slate-500 bg-slate-100 rounded-full p-2 hover:bg-slate-200 z-20"
+            aria-label="Close"
+          >
+            <X size={16} />
+          </button>
+          <div className="flex items-center gap-2">
+            <Sparkles size={18} className="text-emerald-500" />
+            <h3 className="text-lg font-bold text-slate-800">
+              {isEditMode ? "Edit activity" : "Plan an activity"}
+            </h3>
           </div>
-        )}
+        </div>
+        
+        {/* Content */}
+        <div className="px-5 md:px-6 py-4">
+          {!isEditMode && (
+            <div className="flex items-center gap-2 mb-3">
+              <button
+                onClick={() => {
+                  setMode("solo");
+                  setSuggestions([]);
+                }}
+                className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold border ${
+                  mode === "solo"
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                    : "bg-white text-slate-600 border-slate-200"
+                }`}
+              >
+                <User size={14} /> Private
+              </button>
+              <button
+                onClick={() => {
+                  setMode("group");
+                  setSuggestions([]);
+                }}
+                className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold border ${
+                  mode === "group"
+                    ? "bg-blue-50 text-blue-700 border-blue-100"
+                    : "bg-white text-slate-600 border-slate-200"
+                }`}
+              >
+                <Users size={14} /> Public
+              </button>
+            </div>
+          )}
 
-        {mode === "solo" ? soloForm : groupFormView}
+          {mode === "solo" ? soloForm : groupFormView}
 
-        <div className="mt-4 text-[11px] text-slate-500 flex items-center gap-1">
-          <AlertCircle size={12} className="text-amber-500" />
-          AI suggestions powered by Gemini. Set REACT_APP_GEMINI_KEY to enable.
+          <div className="mt-4 text-[11px] text-slate-500 flex items-center gap-1">
+            <AlertCircle size={12} className="text-amber-500" />
+            AI suggestions powered by Gemini. Set REACT_APP_GEMINI_KEY to enable.
+          </div>
         </div>
       </div>
     </div>
