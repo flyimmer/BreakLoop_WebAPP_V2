@@ -3918,49 +3918,53 @@ function QuickTaskDialog({
 }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-sm rounded-2xl shadow-lg p-5 space-y-4">
-        <div className="flex justify-between items-start gap-3">
-          <div>
-            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">
-              Quick Task
-            </p>
-            <h3 className="text-xl font-bold text-slate-900">
-              Quick, necessary use?
-            </h3>
-            <p className="text-sm text-slate-500 mt-1">
-              {remainingUses > 0
-                ? `${remainingUses} left in this 15-minute window.`
-                : "No quick tasks left right now."}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200"
-          >
-            <X size={16} />
-          </button>
+    <div className="fixed inset-0 z-[80] bg-black flex items-center justify-center p-4">
+      <div className="w-full max-w-md px-6 py-8 space-y-8 text-center relative">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-0 right-4 p-2 text-gray-400 hover:text-gray-300"
+        >
+          <X size={24} />
+        </button>
+
+        {/* Header */}
+        <div className="space-y-4">
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+            QUICK TASK
+          </p>
+          <h2 className="text-3xl font-medium text-white">
+            Quick, necessary task?
+          </h2>
+          <p className="text-base text-gray-400">
+            {remainingUses > 0
+              ? `${remainingUses} left in this 15-minute window.`
+              : "No quick tasks left right now."}
+          </p>
         </div>
-        <div className="space-y-3">
+
+        {/* Buttons */}
+        <div className="space-y-3 pt-4">
+          <button
+            onClick={onConscious}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-4 rounded-2xl transition-colors"
+          >
+            Start conscious process
+          </button>
           <button
             onClick={onQuickTask}
             disabled={remainingUses <= 0}
-            className="w-full bg-slate-600 text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 disabled:bg-slate-200 disabled:text-slate-400"
+            className="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium py-4 rounded-2xl transition-colors disabled:bg-gray-900 disabled:text-gray-600"
           >
-            <Zap size={16} /> Quick Task (
-            {formatQuickTaskDuration(durationMinutes, { long: true })})
-          </button>
-          <button
-            onClick={onConscious}
-            className="w-full border border-slate-200 text-slate-700 font-medium py-3 rounded-xl flex items-center justify-center gap-2 bg-white"
-          >
-            <Brain size={16} /> Go through conscious process
+            Quick Task
           </button>
         </div>
-        <div className="text-[11px] text-slate-400 leading-relaxed">
+
+        {/* Footer text */}
+        <p className="text-sm text-gray-500 leading-relaxed pt-4">
           Quick tasks skip the full intervention for urgent moments and expire
           automatically.
-        </div>
+        </p>
       </div>
     </div>
   );
