@@ -5975,7 +5975,6 @@ function BreakLoopConfig({
                       <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
                         <div className="flex justify-between items-center mb-4">
                           <div className="flex items-center gap-2">
-                            <Trophy size={18} className="text-yellow-500" />
                             <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
                               Friends
                             </h3>
@@ -6007,19 +6006,6 @@ function BreakLoopConfig({
                               >
                                 <div className="flex items-center gap-3 w-full">
                                   <div
-                                    className={`text-xs font-bold w-4 text-center ${
-                                      f.rank === 1
-                                        ? "text-yellow-500"
-                                        : "text-slate-300"
-                                    }`}
-                                  >
-                                    {f.rank === 1 ? (
-                                      <Crown size={16} />
-                                    ) : (
-                                      `#${f.rank}`
-                                    )}
-                                  </div>
-                                  <div
                                     className={`w-10 h-10 rounded-full ${f.avatar} flex items-center justify-center text-white font-bold text-sm relative flex-shrink-0`}
                                   >
                                     {f.name[0]}
@@ -6041,7 +6027,7 @@ function BreakLoopConfig({
                                       </div>
                                     </div>
 
-                                    {/* NEW: Mood & Activity Display with Privacy Checks */}
+                                    {/* Mood Display (Activity removed per Decision 1) */}
                                     <div className="flex items-center gap-1.5 mt-1 min-h-[18px]">
                                       {state.settings.shareMood &&
                                         f.recentMood &&
@@ -6061,20 +6047,11 @@ function BreakLoopConfig({
                                             </div>
                                           );
                                         })()}
-                                      {state.settings.shareActivity &&
-                                        f.currentActivity && (
-                                          <div className="text-[10px] text-slate-500 truncate max-w-[100px] flex items-center gap-1">
-                                            <span className="text-slate-300">→</span>{" "}
-                                            {f.currentActivity}
-                                          </div>
-                                        )}
                                     </div>
 
-                                    {/* Fallback Note: Show if privacy hides details OR no details exist */}
+                                    {/* Fallback Note: Show if no mood is displayed */}
                                     {f.note &&
-                                      (!state.settings.shareMood || !f.recentMood) &&
-                                      (!state.settings.shareActivity ||
-                                        !f.currentActivity) && (
+                                      (!state.settings.shareMood || !f.recentMood) && (
                                         <div className="text-[10px] text-slate-400 mt-0.5 truncate">
                                           📝 {f.note}
                                         </div>
@@ -6112,26 +6089,30 @@ function BreakLoopConfig({
                         </div>
                       </div>
 
-                      {/* Friends' Current Activities */}
+                      {/* What Friends Are Up To */}
                       <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
                         <div className="flex items-center gap-2 mb-4">
                           <Users size={18} className="text-indigo-500" />
                           <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                            Friends' Current Activities
+                            What friends are up to
                           </h3>
                         </div>
-                        {[...(state.sharedCurrentActivities || []), ...(state.friendSharedActivities || [])]
-                          .filter(
-                            (activity, idx, arr) =>
+                        {(() => {
+                          // Decision 2: Filter for TODAY only and cap at 3 items
+                          const todayActivities = [...(state.sharedCurrentActivities || []), ...(state.friendSharedActivities || [])]
+                            .filter((activity, idx, arr) => 
+                              // Deduplicate
                               arr.findIndex((a) => a.id === activity.id) === idx
-                          ).length > 0 ? (
-                          <div className="space-y-3">
-                            {[...(state.sharedCurrentActivities || []), ...(state.friendSharedActivities || [])]
-                              .filter(
-                                (activity, idx, arr) =>
-                                  arr.findIndex((a) => a.id === activity.id) === idx
-                              )
-                              .map((activity) => (
+                            )
+                            .filter((activity) => 
+                              // Only show activities happening TODAY
+                              activity.date === "Today"
+                            )
+                            .slice(0, 3); // Hard cap at 3 items
+                          
+                          return todayActivities.length > 0 ? (
+                            <div className="space-y-3">
+                              {todayActivities.map((activity) => (
                                 <div key={activity.id} onClick={() => setSelectedActivity(activity)}>
                                   <ActivityCard
                                     activity={activity}
@@ -6141,12 +6122,13 @@ function BreakLoopConfig({
                                   />
                                 </div>
                               ))}
-                          </div>
-                        ) : (
-                          <div className="text-center text-sm text-slate-400 py-6 bg-slate-50 rounded-2xl border border-slate-100">
-                            No friends are currently active.
-                          </div>
-                        )}
+                            </div>
+                          ) : (
+                            <div className="text-center text-sm text-slate-400 py-6 bg-slate-50 rounded-2xl border border-slate-100">
+                              No friends are currently active.
+                            </div>
+                          );
+                        })()}
                       </div>
                     </>
                   )}
