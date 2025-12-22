@@ -6777,84 +6777,7 @@ function BreakLoopConfig({
           <div className="p-6 space-y-6">
             <h2 className="text-2xl font-bold text-slate-800">Settings</h2>
 
-            {/* Demo Mode */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-              {/* Top row: Title and Toggle */}
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                  <RefreshCw size={18} /> Demo Mode
-                </h3>
-                <button
-                  onClick={() => {
-                    const next = !state.demoMode;
-                    actions.setDemoMode(next);
-                    if (next) {
-                      actions.resetAllState({ demoMode: next });
-                    }
-                  }}
-                  className={`group relative inline-flex items-center gap-1.5 px-2 py-1.5 rounded-full border transition-all ${
-                    state.demoMode
-                      ? "bg-gradient-to-r from-emerald-500 to-emerald-400 border-emerald-400 shadow-lg shadow-emerald-200/60"
-                      : "bg-slate-100 border-slate-200 hover:bg-slate-200"
-                  }`}
-                >
-                  <div
-                    className={`relative h-7 w-12 rounded-full transition-colors ${
-                      state.demoMode ? "bg-white/30" : "bg-white"
-                    }`}
-                  >
-                    <div
-                      className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-md transition-transform duration-200 ${
-                        state.demoMode ? "translate-x-5" : "translate-x-0"
-                      }`}
-                    ></div>
-                  </div>
-                  <span className={`text-[10px] font-normal ${state.demoMode ? "text-white/90" : "text-slate-500"}`}>
-                    {state.demoMode ? "ON" : "OFF"}
-                  </span>
-                </button>
-              </div>
-              {/* Bottom row: Full-width explanatory text */}
-              <p className="text-[10px] text-slate-400 leading-relaxed">
-                When enabled, the app ignores saved data and reloads clean
-                defaults on refresh. Turn it off to keep your progress.
-              </p>
-            </div>
-
-            {/* Test Invite Link (Debug) */}
-            {state.demoMode && (
-              <div className="bg-amber-50 rounded-2xl p-5 border border-amber-200 shadow-sm">
-                <h3 className="font-bold text-amber-900 flex items-center gap-2 mb-3">
-                  <Key size={18} /> Test Invite Link
-                </h3>
-                <p className="text-xs text-amber-700 mb-3">
-                  Simulate opening an invite link to test the friend invitation flow
-                </p>
-                <button
-                  onClick={() => {
-                    // Get the most recent invite token from localStorage
-                    const { loadInvites } = require('./utils/invites');
-                    const invites = loadInvites();
-                    const activeInvites = invites.filter(inv => inv.status === 'active');
-                    
-                    if (activeInvites.length === 0) {
-                      setToast("No active invites found. Generate one first from Friends → Add");
-                      return;
-                    }
-                    
-                    // Use the most recent invite
-                    const latestInvite = activeInvites[activeInvites.length - 1];
-                    handleOpenInviteLink(latestInvite.token);
-                  }}
-                  className="w-full bg-amber-600 text-white font-bold py-2.5 rounded-xl text-sm hover:bg-amber-700 transition-colors flex items-center justify-center gap-2"
-                >
-                  <UserPlus size={16} />
-                  Open Latest Invite Link
-                </button>
-              </div>
-            )}
-
-            {/* My Profile Section */}
+            {/* SECTION 1: MY PROFILE */}
             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-slate-800 flex items-center gap-2">
@@ -7076,7 +6999,7 @@ function BreakLoopConfig({
               )}
             </div>
 
-            {/* Account Section */}
+            {/* SECTION 2: ACCOUNT */}
             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
               <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <User size={18} /> Account
@@ -7126,39 +7049,17 @@ function BreakLoopConfig({
               )}
             </div>
 
-            {/* Social Privacy */}
+            {/* SECTION 3: SOCIAL PRIVACY */}
             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
-                <Globe size={18} /> Social Privacy
+              <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-3">
+                <EyeOff size={18} /> Social Privacy
               </h3>
+              
+              <p className="text-[10px] text-slate-500 mb-4">
+                Controls what your friends can see.
+              </p>
 
-              {/* Option 1: Share Alternatives List */}
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-xs font-bold text-slate-600">
-                  Share Alternatives List
-                </div>
-                <button
-                  onClick={() =>
-                    actions.setSettings({
-                      ...state.settings,
-                      shareAlternatives: !state.settings.shareAlternatives,
-                    })
-                  }
-                  className={`w-10 h-6 rounded-full transition-colors relative ${
-                    state.settings.shareAlternatives
-                      ? "bg-blue-600"
-                      : "bg-slate-200"
-                  }`}
-                >
-                  <div
-                    className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                      state.settings.shareAlternatives ? "left-5" : "left-1"
-                    }`}
-                  ></div>
-                </button>
-              </div>
-
-              {/* Option 2: Share Current Activity */}
+              {/* Toggle 1: Share Current Activity */}
               <div className="flex items-center justify-between mb-3">
                 <div className="text-xs font-bold text-slate-600">
                   Share Current Activity
@@ -7184,8 +7085,34 @@ function BreakLoopConfig({
                 </button>
               </div>
 
-              {/* Option 3: Share Recent Mood */}
-              <div className="flex items-center justify-between">
+              {/* Toggle 2: Share Upcoming Activities */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-xs font-bold text-slate-600">
+                  Share Upcoming Activities
+                </div>
+                <button
+                  onClick={() =>
+                    actions.setSettings({
+                      ...state.settings,
+                      shareUpcomingActivities: !state.settings.shareUpcomingActivities,
+                    })
+                  }
+                  className={`w-10 h-6 rounded-full transition-colors relative ${
+                    state.settings.shareUpcomingActivities
+                      ? "bg-blue-600"
+                      : "bg-slate-200"
+                  }`}
+                >
+                  <div
+                    className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                      state.settings.shareUpcomingActivities ? "left-5" : "left-1"
+                    }`}
+                  ></div>
+                </button>
+              </div>
+
+              {/* Toggle 3: Share Recent Mood */}
+              <div className="flex items-center justify-between mb-3">
                 <div className="text-xs font-bold text-slate-600">
                   Share Recent Mood
                 </div>
@@ -7208,14 +7135,34 @@ function BreakLoopConfig({
                 </button>
               </div>
 
-              <p className="text-[10px] text-slate-400 mt-3 pt-2 border-t border-slate-50 leading-relaxed">
-                Control exactly what friends see on the leaderboard. Disabling
-                "Share Current Activity" hides your live status. Disabling
-                "Share Recent Mood" hides your emotional context.
-              </p>
+              {/* Toggle 4: Share Alternatives List */}
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-bold text-slate-600">
+                  Share Alternatives List
+                </div>
+                <button
+                  onClick={() =>
+                    actions.setSettings({
+                      ...state.settings,
+                      shareAlternatives: !state.settings.shareAlternatives,
+                    })
+                  }
+                  className={`w-10 h-6 rounded-full transition-colors relative ${
+                    state.settings.shareAlternatives
+                      ? "bg-blue-600"
+                      : "bg-slate-200"
+                  }`}
+                >
+                  <div
+                    className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                      state.settings.shareAlternatives ? "left-5" : "left-1"
+                    }`}
+                  ></div>
+                </button>
+              </div>
             </div>
 
-            {/* Monitored Apps */}
+            {/* SECTION 4: MONITORED APPS */}
             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
               <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
                 <Shield size={18} /> Monitored Apps
@@ -7241,7 +7188,64 @@ function BreakLoopConfig({
               </div>
             </div>
 
-            {/* QUICK TASK SETTINGS */}
+            {/* SECTION 5: PREFERENCES (INTERVENTION BEHAVIOR) */}
+            <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm space-y-4">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <Sliders size={18} /> Preferences
+              </h3>
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-xs font-bold text-slate-600">
+                    Intervention Duration
+                  </span>
+                  <span className="text-xs text-blue-600 font-bold">
+                    {state.settings.interventionDuration}s
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="3"
+                  max="30"
+                  value={state.settings.interventionDuration}
+                  onChange={(e) =>
+                    actions.setSettings({
+                      ...state.settings,
+                      interventionDuration: e.target.value,
+                    })
+                  }
+                  className="w-full h-1 bg-slate-200 rounded-lg appearance-none"
+                />
+              </div>
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-xs font-bold text-slate-600">
+                    App Switch Interval
+                  </span>
+                  <span className="text-xs text-blue-600 font-bold">
+                    {state.settings.gracePeriod}m
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="15"
+                  value={state.settings.gracePeriod}
+                  onChange={(e) =>
+                    actions.setSettings({
+                      ...state.settings,
+                      gracePeriod: e.target.value,
+                    })
+                  }
+                  className="w-full h-1 bg-slate-200 rounded-lg appearance-none"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Allows switching between configured apps without a new
+                  breathing exercise.
+                </p>
+              </div>
+            </div>
+
+            {/* SECTION 6: QUICK TASK (EMERGENCY) */}
             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="font-bold text-slate-800 flex items-center gap-2">
@@ -7341,97 +7345,89 @@ function BreakLoopConfig({
               )}
             </div>
 
-            {/* THEME SELECTOR */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm space-y-4 mt-4">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                <Sliders size={18} /> Theme
-              </h3>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() =>
-                    actions.setSettings({ ...state.settings, theme: "default" })
-                  }
-                  className={`p-3 rounded-xl border ${
-                    state.settings.theme === "default"
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-slate-200"
-                  } text-xs font-bold`}
-                >
-                  Default (Dark)
-                </button>
-                <button
-                  onClick={() =>
-                    actions.setSettings({ ...state.settings, theme: "forest" })
-                  }
-                  className={`p-3 rounded-xl border ${
-                    state.settings.theme === "forest"
-                      ? "border-green-500 bg-green-50"
-                      : "border-slate-200"
-                  } text-xs font-bold`}
-                >
-                  Forest
-                </button>
-              </div>
-            </div>
+            {/* SECTION 7: DEMO / TEST / ADVANCED TOOLS */}
+            <div className="mt-8 pt-6 border-t border-slate-200 space-y-4">
+              <p className="text-xs text-slate-400 text-center mb-4">
+                Advanced / Development Tools
+              </p>
 
-            {/* Preferences */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm space-y-4 mt-4">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                <Sliders size={18} /> Preferences
-              </h3>
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-xs font-bold text-slate-600">
-                    Intervention Duration
-                  </span>
-                  <span className="text-xs text-blue-600 font-bold">
-                    {state.settings.interventionDuration}s
-                  </span>
+              {/* Demo Mode */}
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <h3 className="text-sm font-bold text-slate-600 flex items-center gap-2">
+                    <RefreshCw size={16} /> Demo Mode
+                  </h3>
+                  <button
+                    onClick={() => {
+                      const next = !state.demoMode;
+                      actions.setDemoMode(next);
+                      if (next) {
+                        actions.resetAllState({ demoMode: next });
+                      }
+                    }}
+                    className={`group relative inline-flex items-center gap-1.5 px-2 py-1.5 rounded-full border transition-all ${
+                      state.demoMode
+                        ? "bg-gradient-to-r from-emerald-500 to-emerald-400 border-emerald-400 shadow-lg shadow-emerald-200/60"
+                        : "bg-slate-100 border-slate-200 hover:bg-slate-200"
+                    }`}
+                  >
+                    <div
+                      className={`relative h-7 w-12 rounded-full transition-colors ${
+                        state.demoMode ? "bg-white/30" : "bg-white"
+                      }`}
+                    >
+                      <div
+                        className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-md transition-transform duration-200 ${
+                          state.demoMode ? "translate-x-5" : "translate-x-0"
+                        }`}
+                      ></div>
+                    </div>
+                    <span className={`text-[10px] font-normal ${state.demoMode ? "text-white/90" : "text-slate-500"}`}>
+                      {state.demoMode ? "ON" : "OFF"}
+                    </span>
+                  </button>
                 </div>
-                <input
-                  type="range"
-                  min="3"
-                  max="30"
-                  value={state.settings.interventionDuration}
-                  onChange={(e) =>
-                    actions.setSettings({
-                      ...state.settings,
-                      interventionDuration: e.target.value,
-                    })
-                  }
-                  className="w-full h-1 bg-slate-200 rounded-lg appearance-none"
-                />
-              </div>
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-xs font-bold text-slate-600">
-                    App Switch Interval
-                  </span>
-                  <span className="text-xs text-blue-600 font-bold">
-                    {state.settings.gracePeriod}m
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="15"
-                  value={state.settings.gracePeriod}
-                  onChange={(e) =>
-                    actions.setSettings({
-                      ...state.settings,
-                      gracePeriod: e.target.value,
-                    })
-                  }
-                  className="w-full h-1 bg-slate-200 rounded-lg appearance-none"
-                />
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Allows switching between configured apps without a new
-                  breathing exercise.
+                <p className="text-[10px] text-slate-400 leading-relaxed">
+                  When enabled, the app ignores saved data and reloads clean
+                  defaults on refresh. Turn it off to keep your progress.
                 </p>
               </div>
+
+              {/* Test Invite Link (Debug) - Only shown when Demo Mode is ON */}
+              {state.demoMode && (
+                <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                  <h3 className="text-sm font-bold text-amber-900 flex items-center gap-2 mb-2">
+                    <Key size={16} /> Test Invite Link
+                  </h3>
+                  <p className="text-[10px] text-amber-700 mb-3">
+                    Simulate opening an invite link to test the friend invitation flow
+                  </p>
+                  <button
+                    onClick={() => {
+                      // Get the most recent invite token from localStorage
+                      const { loadInvites } = require('./utils/invites');
+                      const invites = loadInvites();
+                      const activeInvites = invites.filter(inv => inv.status === 'active');
+                      
+                      if (activeInvites.length === 0) {
+                        setToast("No active invites found. Generate one first from Friends → Add");
+                        return;
+                      }
+                      
+                      // Use the most recent invite
+                      const latestInvite = activeInvites[activeInvites.length - 1];
+                      handleOpenInviteLink(latestInvite.token);
+                    }}
+                    className="w-full bg-amber-600 text-white font-bold py-2 rounded-lg text-xs hover:bg-amber-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <UserPlus size={14} />
+                    Open Latest Invite Link
+                  </button>
+                </div>
+              )}
             </div>
 
-            <div className="text-center text-xs text-slate-300 pt-4">
+            <div className="text-center text-xs text-slate-300 pt-6">
               {VERSION_ID}
             </div>
           </div>

@@ -32,9 +32,10 @@ export const DEFAULT_MONITORED_APPS = ["instagram", "tiktok"];
 export const DEFAULT_SETTINGS = {
   interventionDuration: 5,
   gracePeriod: 5,
-  shareAlternatives: true,
-  shareActivity: true, // Share current alternative activity
-  shareMood: true, // Share recent mood/root cause
+  shareAlternatives: true, // Share alternatives list with friends
+  shareActivity: true, // Share current activity with friends
+  shareUpcomingActivities: true, // Share upcoming activities with friends
+  shareMood: true, // Share recent mood/root cause with friends
   theme: "default",
 };
 
