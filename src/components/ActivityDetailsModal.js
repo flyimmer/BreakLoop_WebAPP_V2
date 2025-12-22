@@ -28,6 +28,7 @@ import { emitEventChatUpdate } from "../utils/eventUpdates";
 export function ActivityDetailsModal({
   activity,
   currentUserId,
+  navigationContext,
   onClose,
   onRequestJoin,
   onStartActivity,
@@ -44,8 +45,16 @@ export function ActivityDetailsModal({
 }) {
   if (!activity) return null;
 
+  // Determine initial tab based on navigation context
+  const getInitialTab = () => {
+    if (navigationContext?.initialTab) {
+      return navigationContext.initialTab;
+    }
+    return "details";
+  };
+
   // Section management state
-  const [activeSection, setActiveSection] = useState("details");
+  const [activeSection, setActiveSection] = useState(getInitialTab());
   
   // Chat state
   const [messages, setMessages] = useState([]);
@@ -54,7 +63,12 @@ export function ActivityDetailsModal({
   const chatInputRef = useRef(null);
 
   const hostMeta = HOST_LABELS_MODAL[activity.hostType] || HOST_LABELS_MODAL.self;
-  const isHost = currentUserId && activity.hostId === currentUserId;
+  
+  // Determine if user is host
+  // RULE 1: If navigated from join_request update, user is always the host
+  const isHost = 
+    (navigationContext?.updateType === 'join_request') ||
+    (currentUserId && activity.hostId === currentUserId);
 
   // Check if the activity is in user's upcoming activities list
   // This determines if they have actually joined (confirmed or pending)
@@ -89,6 +103,14 @@ export function ActivityDetailsModal({
   const [liveVisibility, setLiveVisibility] = useState(
     activity.visibility === "public" ? "public" : "friends"
   );
+
+  // Set initial tab based on navigation context when activity changes
+  useEffect(() => {
+    if (activity?.id) {
+      const initialTab = getInitialTab();
+      setActiveSection(initialTab);
+    }
+  }, [activity?.id, navigationContext]);
 
   // Load chat messages when activity changes or chat tab is opened
   useEffect(() => {

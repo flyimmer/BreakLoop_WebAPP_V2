@@ -4130,6 +4130,7 @@ function BreakLoopConfig({
   // CHAT UI STATE
   const [chatInput, setChatInput] = useState("");
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [activityNavigationContext, setActivityNavigationContext] = useState(null); // Track navigation source for Activity Details
 
   // INBOX STATE (Phase E-2d)
   const [inboxSubTab, setInboxSubTab] = useState("updates"); // "messages" or "updates"
@@ -4398,6 +4399,7 @@ function BreakLoopConfig({
       case UPDATE_TYPES.EVENT_CHAT:
         // Open Activity Details → Chat tab
         if (activity) {
+          setActivityNavigationContext({ source: 'inbox', updateType: UPDATE_TYPES.EVENT_CHAT, initialTab: 'chat' });
           setSelectedActivity(activity);
           // Resolve event_chat updates for this event when chat is opened
           resolveUpdatesByEventAndType(update.eventId, UPDATE_TYPES.EVENT_CHAT);
@@ -4412,6 +4414,7 @@ function BreakLoopConfig({
         // Open Activity Details for host to approve/decline
         // Note: Actual resolution happens when host accepts/declines
         if (activity) {
+          setActivityNavigationContext({ source: 'inbox', updateType: UPDATE_TYPES.JOIN_REQUEST, initialTab: 'participants' });
           setSelectedActivity(activity);
           // Don't resolve yet - wait for host action
         } else {
@@ -4424,6 +4427,7 @@ function BreakLoopConfig({
       case UPDATE_TYPES.JOIN_DECLINED:
         // Open Activity Details to show status
         if (activity) {
+          setActivityNavigationContext({ source: 'inbox', updateType: update.type, initialTab: 'details' });
           setSelectedActivity(activity);
         }
         // Resolve immediately after viewing
@@ -4433,6 +4437,7 @@ function BreakLoopConfig({
       case UPDATE_TYPES.EVENT_UPDATED:
         // Open Activity Details to show changes
         if (activity) {
+          setActivityNavigationContext({ source: 'inbox', updateType: UPDATE_TYPES.EVENT_UPDATED, initialTab: 'details' });
           setSelectedActivity(activity);
         }
         resolveUpdate(update.id);
@@ -4441,6 +4446,7 @@ function BreakLoopConfig({
       case UPDATE_TYPES.EVENT_CANCELLED:
         // Show cancellation info
         if (activity) {
+          setActivityNavigationContext({ source: 'inbox', updateType: UPDATE_TYPES.EVENT_CANCELLED, initialTab: 'details' });
           setSelectedActivity(activity);
         }
         resolveUpdate(update.id);
@@ -4449,6 +4455,7 @@ function BreakLoopConfig({
       case UPDATE_TYPES.PARTICIPANT_LEFT:
         // Open Activity Details to show updated participant list
         if (activity) {
+          setActivityNavigationContext({ source: 'inbox', updateType: UPDATE_TYPES.PARTICIPANT_LEFT, initialTab: 'participants' });
           setSelectedActivity(activity);
         }
         resolveUpdate(update.id);
@@ -7227,7 +7234,11 @@ function BreakLoopConfig({
       <ActivityDetailsModal
         activity={selectedActivity}
         currentUserId={currentUserId}
-        onClose={() => setSelectedActivity(null)}
+        navigationContext={activityNavigationContext}
+        onClose={() => {
+          setSelectedActivity(null);
+          setActivityNavigationContext(null);
+        }}
         onRequestJoin={handleRequestToJoin}
         onStartActivity={handleStartCommunityActivity}
         onEditActivity={handleEditActivity}
