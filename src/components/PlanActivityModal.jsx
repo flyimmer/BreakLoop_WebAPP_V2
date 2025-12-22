@@ -5,6 +5,7 @@ import {
   Clock,
   Loader,
   MapPin,
+  RefreshCw,
   Sparkles,
   Users,
   User,
@@ -751,12 +752,23 @@ export default function PlanActivityModal({
                   <div className="text-xs font-bold text-slate-600">
                     {suggestions.length} suggestions
                   </div>
-                  <button
-                    onClick={handleBackToForm}
-                    className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                  >
-                    ← Back to form
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleGenerate}
+                      disabled={isLoading}
+                      className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Generate new suggestions with the same inputs"
+                    >
+                      <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} /> 
+                      {isLoading ? "Regenerating..." : "Regenerate"}
+                    </button>
+                    <button
+                      onClick={handleBackToForm}
+                      className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                    >
+                      ← Back to form
+                    </button>
+                  </div>
                 </div>
                 {suggestions.map((suggestion) => (
                   <ActivitySuggestionCard
@@ -1053,11 +1065,6 @@ export default function PlanActivityModal({
 
           {/* Render appropriate view based on mode */}
           {mode === "ai" ? aiSuggestionView : manualFormView}
-
-          <div className="mt-4 text-[11px] text-slate-500 flex items-center gap-1">
-            <AlertCircle size={12} className="text-emerald-500" />
-            AI suggestions with real-time search powered by Gemini. Set REACT_APP_GEMINI_KEY to enable.
-          </div>
         </div>
       </div>
     </div>

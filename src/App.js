@@ -6301,12 +6301,10 @@ function BreakLoopConfig({
                     Discover
                   </button>
                   <button
-                    onClick={() => setCommunityMenu("plan")}
-                    className={`px-2 py-2 rounded-xl font-bold text-xs transition-colors ${
-                      communityMenu === "plan"
-                        ? "bg-slate-900 text-white"
-                        : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-                    }`}
+                    onClick={() => {
+                      setShowPlanModal(true);
+                    }}
+                    className="px-2 py-2 rounded-xl font-bold text-xs transition-colors bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
                   >
                     Plan
                   </button>
@@ -6543,52 +6541,7 @@ function BreakLoopConfig({
                     </div>
                   )}
 
-                  {/* PLAN AN ACTIVITY MENU */}
-                  {communityMenu === "plan" && (
-                    <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
-                      <div className="flex items-center gap-2 mb-4">
-                        <Sparkles size={18} className="text-emerald-500" />
-                        <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                          Plan an Activity
-                        </h3>
-                      </div>
-                      <div className="space-y-4">
-                        <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50 text-sm text-slate-600">
-                          Plan for yourself or host a group. AI suggestions stay on-device;
-                          swap in your backend when ready.
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="p-3 rounded-2xl border border-slate-100 bg-white">
-                            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
-                              Private
-                            </div>
-                            <div className="text-sm text-slate-700">
-                              Quick AI ideas or manual steps. Saves into My Upcoming.
-                            </div>
-                          </div>
-                          <div className="p-3 rounded-2xl border border-slate-100 bg-white">
-                            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
-                              Public (hosted)
-                            </div>
-                            <div className="text-sm text-slate-700">
-                              Publish to friends or public. Allows ask-to-join.
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => setShowPlanModal(true)}
-                          className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
-                        >
-                          <Sparkles size={16} /> Plan an activity
-                        </button>
-                        <div className="text-[11px] text-slate-400 leading-relaxed">
-                          Accept AI ideas to confirm instantly. Public group events appear
-                          in Discover. Friends can ask to join; manage inside the details
-                          modal.
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  {/* PLAN AN ACTIVITY MENU - Removed: Plan tab now opens modal directly */}
                 </div>
               </div>
             )}

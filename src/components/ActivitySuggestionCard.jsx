@@ -114,7 +114,7 @@ export default function ActivitySuggestionCard({
           onClick={() => onSave?.(suggestion)}
           className="w-full bg-emerald-600 text-white font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1"
         >
-          <Save size={14} /> Save
+          <Save size={14} /> Save privately
         </button>
       </div>
     </div>
