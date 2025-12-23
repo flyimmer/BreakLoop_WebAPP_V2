@@ -171,6 +171,16 @@ import {
   DEFAULT_QUICK_TASK_DURATION,
   DEFAULT_QUICK_TASK_LIMIT,
 } from "./constants/config";
+import {
+  createInitialInterventionContext,
+  interventionReducer,
+  beginIntervention,
+  toggleCause,
+  canProceedToAlternatives,
+  startAlternative,
+  shouldTickBreathing,
+  shouldTickActionTimer,
+} from "./core/intervention";
 
 const CAUSES = [
   { id: "boredom", label: "Boredom", icon: <HelpCircle size={20} /> },
@@ -1148,11 +1158,25 @@ export default function App() {
   const [quickTaskTick, setQuickTaskTick] = useState(Date.now());
   const [activeQuickTaskApp, setActiveQuickTaskApp] = useState(null);
 
-  const [interventionState, setInterventionState] = useState("idle");
-  const [targetApp, setTargetApp] = useState(null);
-  const [breathingCount, setBreathingCount] = useState(3);
-  const [selectedCauses, setSelectedCauses] = useState([]);
-  const [selectedAlternative, setSelectedAlternative] = useState(null);
+  // Intervention state machine (using extracted core logic)
+  const [interventionContext, setInterventionContext] = useState(() => 
+    createInitialInterventionContext()
+  );
+  
+  // Destructure for backward compatibility with existing code
+  const interventionState = interventionContext.state;
+  const targetApp = interventionContext.targetApp;
+  const breathingCount = interventionContext.breathingCount;
+  const selectedCauses = interventionContext.selectedCauses;
+  const selectedAlternative = interventionContext.selectedAlternative;
+  const actionTimer = interventionContext.actionTimer;
+  
+  // Helper to dispatch intervention actions
+  const dispatchIntervention = useCallback((action) => {
+    setInterventionContext(prev => interventionReducer(prev, action));
+  }, []);
+  
+  // UI state (not part of intervention state machine)
   const [altPage, setAltPage] = useState(0);
   const [isAddingAlt, setIsAddingAlt] = useState(false);
   const [newAltData, setNewAltData] = useState({
@@ -1167,7 +1191,6 @@ export default function App() {
   const [altPlanDraft, setAltPlanDraft] = useState(null);
   const [proactiveState, setProactiveState] = useState(null);
   const [altTab, setAltTab] = useState("discover");
-  const [actionTimer, setActionTimer] = useState(0);
 
   // AI STATE
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
@@ -1279,7 +1302,7 @@ export default function App() {
       setCustomAlternatives([]);
       setSavedAlternativeIds([]);
       setPrivacyMap({});
-      setSelectedAlternative(null);
+      setInterventionContext(createInitialInterventionContext());
       setShowAltScheduler(false);
       setAltPlanDraft(null);
       setSettings({ ...DEFAULT_SETTINGS });
@@ -1382,28 +1405,27 @@ export default function App() {
     }
   }, []); // Run once on mount
 
+  // Breathing countdown timer (uses extracted logic)
   useEffect(() => {
     let timer;
-    if (interventionState === "breathing") {
-      if (breathingCount > 0) {
-        timer = setTimeout(() => setBreathingCount(breathingCount - 1), 1000);
-      } else {
-        setInterventionState("root-cause");
-      }
+    if (shouldTickBreathing(interventionState, breathingCount)) {
+      timer = setTimeout(() => {
+        dispatchIntervention({ type: 'BREATHING_TICK' });
+      }, 1000);
     }
     return () => clearTimeout(timer);
-  }, [interventionState, breathingCount]);
+  }, [interventionState, breathingCount, dispatchIntervention]);
 
-  // ACTION TIMER EFFECT
+  // Action timer effect (uses extracted logic)
   useEffect(() => {
     let timer;
-    if (interventionState === "action_timer" && actionTimer > 0) {
-      timer = setInterval(() => setActionTimer((t) => t - 1), 1000);
-    } else if (interventionState === "action_timer" && actionTimer === 0) {
-      // Optional: Auto finish or just stay at 00:00
+    if (shouldTickActionTimer(interventionState, actionTimer)) {
+      timer = setInterval(() => {
+        dispatchIntervention({ type: 'ACTION_TIMER_TICK' });
+      }, 1000);
     }
     return () => clearInterval(timer);
-  }, [interventionState, actionTimer]);
+  }, [interventionState, actionTimer, dispatchIntervention]);
 
   useEffect(() => {
     if (toast) {
@@ -1664,7 +1686,7 @@ export default function App() {
       currentActivity,
       showAltScheduler,
       altPlanDraft,
-      selectedAlternative,
+      interventionContext.selectedAlternative,
       userCoordinates,
     ]
   );
@@ -1748,11 +1770,12 @@ export default function App() {
   };
 
   const beginInterventionForApp = (app) => {
-    setTargetApp(app);
-    setInterventionState("breathing");
-    setBreathingCount(settings.interventionDuration);
-    setSelectedCauses([]);
-    setSelectedAlternative(null);
+    // Use extracted core logic for intervention state
+    setInterventionContext(prev => 
+      beginIntervention(prev, app, settings.interventionDuration)
+    );
+    
+    // Reset UI state (not part of core intervention logic)
     resetNewAltForm();
     resetAIInspiredForm();
     setAltPage(0);
@@ -1780,8 +1803,7 @@ export default function App() {
     );
     setShowQuickTaskDialog(false);
     setPendingQuickTaskApp(null);
-    setInterventionState("idle");
-    setTargetApp(null);
+    dispatchIntervention({ type: 'RESET_INTERVENTION' });
     setActiveContext(`app-${app.id}`);
     setToast(
       `Quick task started for ${formatQuickTaskDuration(quickTaskDurationMinutes)}`
@@ -2269,12 +2291,8 @@ Example: [{"title": "Watch 'Past Lives' at Cinema München", "desc": "Catch the 
 
   const handleStartAlternative = (alt = selectedAlternative) => {
     if (!alt) return;
-    // Parse duration
-    const durationStr = alt.duration || "5m";
-    const mins = parseInt(durationStr);
-    setActionTimer(mins * 60);
-    setSelectedAlternative(alt); // Ensure selected
-    setInterventionState("action_timer");
+    // Use extracted core logic to start alternative
+    setInterventionContext(prev => startAlternative(prev, alt));
   };
 
   const handleOpenAltScheduler = (alt = selectedAlternative) => {
@@ -2330,7 +2348,6 @@ Example: [{"title": "Watch 'Past Lives' at Cinema München", "desc": "Catch the 
 
       if (remaining > 0) {
         setPendingQuickTaskApp(app);
-        setTargetApp(app);
         setShowQuickTaskDialog(true);
         return;
       }
@@ -2345,7 +2362,7 @@ Example: [{"title": "Watch 'Past Lives' at Cinema München", "desc": "Catch the 
     if (!targetApp) return;
     const expiry = Date.now() + minutes * 60 * 1000;
     setActiveSessions({ ...activeSessions, [targetApp.name]: expiry });
-    setInterventionState("idle");
+    dispatchIntervention({ type: 'RESET_INTERVENTION' });
     setActiveContext(`app-${targetApp.id}`);
   };
 
@@ -2364,7 +2381,7 @@ Example: [{"title": "Watch 'Past Lives' at Cinema München", "desc": "Catch the 
     }
 
     setActiveContext("launcher");
-    setInterventionState("idle");
+    dispatchIntervention({ type: 'RESET_INTERVENTION' });
     setProactiveState(null);
     // If in session and going home -> Distracted
     if (
@@ -2457,7 +2474,7 @@ Example: [{"title": "Watch 'Past Lives' at Cinema München", "desc": "Catch the 
   };
 
   const finishReflection = (rating) => {
-    setInterventionState("idle");
+    dispatchIntervention({ type: 'FINISH_REFLECTION', rating });
     if (rating > 0) {
       setUserAccount((prev) => ({ ...prev, streak: prev.streak + 1 }));
       setToast("Streak +1! Well done.");
@@ -2685,8 +2702,7 @@ Example: [{"title": "Watch 'Past Lives' at Cinema München", "desc": "Catch the 
           onClick={() => {
             // When in "action" step (viewing selected alternative), go back to alternatives
             if (interventionState === "action") {
-              setInterventionState("alternatives");
-              setSelectedAlternative(null);
+              dispatchIntervention({ type: 'GO_BACK_FROM_ACTION' });
             } else {
               // Otherwise, go back to phone simulation
               handleHomeButton();
@@ -2724,11 +2740,7 @@ Example: [{"title": "Watch 'Past Lives' at Cinema München", "desc": "Catch the 
                 <button
                   key={cause.id}
                   onClick={() => {
-                    if (selectedCauses.includes(cause.id))
-                      setSelectedCauses(
-                        selectedCauses.filter((c) => c !== cause.id)
-                      );
-                    else setSelectedCauses([...selectedCauses, cause.id]);
+                    setInterventionContext(prev => toggleCause(prev, cause.id));
                   }}
                   className={`p-4 rounded-xl flex flex-col items-center gap-2 transition-all border ${
                     selectedCauses.includes(cause.id)
@@ -2751,14 +2763,14 @@ Example: [{"title": "Watch 'Past Lives' at Cinema München", "desc": "Catch the 
             </div>
             <div className="mt-auto space-y-3">
               <button
-                onClick={() => setInterventionState("alternatives")}
+                onClick={() => dispatchIntervention({ type: 'PROCEED_TO_ALTERNATIVES' })}
                 disabled={selectedCauses.length === 0}
                 className="w-full bg-white text-blue-900 font-bold py-3 rounded-xl disabled:opacity-50"
               >
                 See Alternatives
               </button>
               <button
-                onClick={() => setInterventionState("timer")}
+                onClick={() => dispatchIntervention({ type: 'PROCEED_TO_TIMER' })}
                 className="w-full py-2 text-white/40 text-sm hover:text-white"
               >
                 I really need to use it.
@@ -3160,11 +3172,13 @@ Example: [{"title": "Watch 'Past Lives' at Cinema München", "desc": "Catch the 
                             <div className="flex gap-2 pt-2">
                               <button
                                 onClick={() => {
-                                  setSelectedAlternative({
-                                    ...suggestion,
-                                    id: `ai-inspired-temp-${idx}`,
+                                  dispatchIntervention({ 
+                                    type: 'SELECT_ALTERNATIVE', 
+                                    alternative: {
+                                      ...sug,
+                                      id: `ai-inspired-temp-${idx}`,
+                                    }
                                   });
-                                  setInterventionState("action");
                                 }}
                                 className="flex-1 bg-teal-600 hover:bg-teal-500 py-1.5 rounded text-xs font-bold"
                               >
@@ -3222,8 +3236,10 @@ Example: [{"title": "Watch 'Past Lives' at Cinema München", "desc": "Catch the 
                       <div
                         key={i}
                         onClick={() => {
-                          setSelectedAlternative(alt);
-                          setInterventionState("action");
+                          dispatchIntervention({ 
+                            type: 'SELECT_ALTERNATIVE', 
+                            alternative: alt
+                          });
                         }}
                         className={`bg-white rounded-xl p-4 flex flex-col gap-2 relative group cursor-pointer transition-transform ${
                           altTab === "ai" ? "" : "hover:scale-[1.02]"
@@ -3365,7 +3381,7 @@ Example: [{"title": "Watch 'Past Lives' at Cinema München", "desc": "Catch the 
               </button>
             </div>
             <button
-              onClick={() => setInterventionState("timer")}
+              onClick={() => dispatchIntervention({ type: 'PROCEED_TO_TIMER' })}
               className="w-full py-2 text-white/40 text-sm hover:text-white mt-2"
             >
               Ignore & Continue
@@ -3449,7 +3465,7 @@ Example: [{"title": "Watch 'Past Lives' at Cinema München", "desc": "Catch the 
             )}
 
             <button
-              onClick={() => setInterventionState("reflection")}
+              onClick={() => dispatchIntervention({ type: 'FINISH_ACTION' })}
               className="bg-white/10 border border-white/20 text-white px-8 py-3 rounded-xl font-bold w-full flex items-center justify-center gap-2 hover:bg-white/20 transition-colors"
             >
               <Check size={20} />{" "}
@@ -3913,7 +3929,7 @@ Example: [{"title": "Watch 'Past Lives' at Cinema München", "desc": "Catch the 
             <Timer size={12} /> {timeLeft}m
             <button
               onClick={() => {
-                setInterventionState("idle");
+                dispatchIntervention({ type: 'RESET_INTERVENTION' });
                 handleHomeButton();
               }}
               className="ml-2 text-[10px] bg-white/20 px-1.5 rounded hover:bg-white/30"
