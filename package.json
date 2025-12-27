@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "keywords": [],
-  "main": "src/index.tsx",
+  "main": "src/index.js",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "lucide-react": "0.555.0",
